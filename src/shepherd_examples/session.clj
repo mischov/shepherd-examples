@@ -10,9 +10,7 @@
             [hiccup.core :refer [html]]))
 
 
-;;
 ;;  Database
-;;
 
 
 (def db
@@ -24,9 +22,7 @@
           :role :unremarkable}})
 
 
-;;
 ;;  Interface
-;;
 
 
 (defn home-view
@@ -81,9 +77,7 @@
       (assoc :session {})))
 
 
-;;
 ;;  Routes and App
-;;
 
 
 (defroutes routes
@@ -96,6 +90,8 @@
 
 
 (defn authr
+  "Function used to check if identity is authorized to
+   make request."
   [request identity]
 
   (if (= "/secured" (:uri request))
@@ -105,6 +101,7 @@
 
 
 (defn unauthr
+  "Function to be called if identity is not authorized."
   [request identity]
 
   (if identity

@@ -8,9 +8,7 @@
             [hiccup.core :refer [html]]))
 
 
-;;
 ;;  Database
-;;
 
 
 (def db
@@ -21,9 +19,8 @@
           :password (bcrypt "nob")
           :role :unremarkable}})
 
-;;
+
 ;;  Interface
-;;
 
 
 (defn home-view
@@ -44,9 +41,7 @@
         [:p "You must be a very special person... unlike that Bob fellow."]))
 
 
-;;
 ;;  Routes and Apps
-;;
 
 
 (defroutes routes
@@ -56,6 +51,9 @@
 
 
 (defn authn
+  "Function used to check if credentials represent a valid identity.
+
+   Returns identity if they do."
   [{:keys [username password]}]
 
   (when-let [user (get db username)]
@@ -64,6 +62,8 @@
 
 
 (defn authr
+  "Function used to check if identity is authorized to
+   make request."
   [request identity]
 
   (if (= "/secured" (:uri request))
