@@ -8,7 +8,8 @@
                  [shepherd "0.0.1"]
                  [compojure "1.1.9"]
                  [hiccup "1.0.5"]
-                 [ring "1.3.1"]]
+                 [ring "1.3.1"]
+                 [criterium "0.4.3"]]
 
   :plugins [[lein-ring "0.8.11"]]
 

@@ -1,13 +1,14 @@
-(ns shepherd-examples.basic-http
-  (:require [shepherd.ring.workflow.http-basic :refer [http-basic-workflow
-                                                       parse-identity]]
+(ns shepherd-examples.basic-http2
+  (:require [shepherd.ring.workflow.http-basic :refer [http-basic-workflow]]
             [shepherd.ring.middleware :refer [wrap-auth]]
-            [shepherd.authorization :refer [throw-unauthorized]]
+            [shepherd.ring.authorization :refer [throw-unauthorized]]
             [shepherd.password :refer [bcrypt check-bcrypt]]
             [compojure.core :refer [defroutes GET]]
             [compojure.route :refer [not-found]]
             [compojure.handler :refer [api]]
-            [hiccup.core :refer [html]]))
+            [hiccup.core :refer [html]]
+            
+            [criterium.core :refer [with-progress-reporting quick-bench]]))
 
 
 ;;  Database
@@ -52,7 +53,7 @@
   (not-found "I believe you might be lost."))
 
 
-(defn authenticate
+(defn authn
   "Function used to check if credentials represent a valid identity.
 
    Returns identity if they do."
@@ -63,23 +64,22 @@
       (dissoc user :password))))
 
 
-(defn wrap-secure-secured
-  "Ring handler that throws an Unauthorized exception if request
-   is not authorized."
-  [handler]
+(defn authr
+  "Function used to check if identity is authorized to
+   make request."
+  [request identity]
 
-  (fn [request]
-    (let [identity (parse-identity request)]
-      (cond
-       (not= (:uri request) "/secured") (handler request)
-       (= (:role identity) :special) (handler request)
-       :else (throw-unauthorized)))))
+  (if (= "/secured" (:uri request))
+    (when (= :special (:role identity))
+      true)
+    true))
 
 
 (def app
-  (let [workflow (http-basic-workflow
-                  {:authenticate authenticate})]
+  (let [workflow (shepherd/create-http-basic-workflow
+                  {:authn authn
+                   :authr authr})]
     (-> routes
-        (wrap-secure-secured)
         (wrap-auth workflow)
-        (api))))
+        (api)
+        )))

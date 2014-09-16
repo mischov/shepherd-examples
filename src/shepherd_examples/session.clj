@@ -1,6 +1,8 @@
 (ns shepherd-examples.session
-  (:require [shepherd.ring.workflow.session :as shepherd]
+  (:require [shepherd.ring.workflow.session :refer [session-workflow
+                                                    parse-identity]]
             [shepherd.ring.middleware :refer [wrap-auth]]
+            [shepherd.authorization :refer [throw-unauthorized]]
             [shepherd.password :refer [bcrypt check-bcrypt]]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.route :refer [not-found]]
@@ -64,9 +66,11 @@
         session (get request :session)
         user (get db username)
         new-session (assoc session :identity (dissoc user :password))]
-    (if (check-bcrypt password (:password user))
-      (-> (redirect "/")
-          (assoc :session new-session))
+    (if user
+      (if (check-bcrypt password (:password user))
+        (-> (redirect "/")
+            (assoc :session new-session))
+        (redirect "/login"))
       (redirect "/login"))))
 
 
@@ -89,32 +93,40 @@
   (not-found "I believe you might be lost."))
 
 
-(defn authr
-  "Function used to check if identity is authorized to
-   make request."
+(defn wrap-secure-secured
+  "Ring handler that throws an Unauthorized exception if request
+   is not authorized."
+  [handler]
+
+  (fn [request]
+    (let [identity (parse-identity request)]
+      (cond
+       (not= (:uri request) "/secured") (handler request)
+       (= (:role identity) :special) (handler request)
+       :else (throw-unauthorized)))))
+
+
+(defn unauthenticated
+  "Function to be called if request has no identity and is
+   not authorized."
+  [request]
+
+  (redirect "/login"))
+
+(defn unauthorized
+  "Function to be called if request is not authorized."
   [request identity]
 
-  (if (= "/secured" (:uri request))
-    (when (= :special (:role identity))
-      true)
-    true))
-
-
-(defn unauthr
-  "Function to be called if identity is not authorized."
-  [request identity]
-
-  (if identity
-    {:status 403
-     :body "Permission denied."}
-    (redirect "/login")))
+  {:status 403
+   :body "Permission denied."})
 
 
 (def app
-  (let [workflow (shepherd/create-session-workflow
-                  {:authr authr
-                   :unauthr unauthr})]
+  (let [workflow (session-workflow
+                  {:unauthenticated unauthenticated
+                   :unauthoriezed unauthorized})]
     (-> routes
+        (wrap-secure-secured)
         (wrap-auth workflow)
         (wrap-session)
         (api))))
