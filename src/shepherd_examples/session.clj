@@ -114,7 +114,7 @@
 
 
 (defn authenticate-login
-  If credentials represent a valid identity, returns that identity.
+  "If credentials represent a valid identity, returns that identity."
   [{:keys [username password] :as credentials}]
 
   (when-let [user (get db username)]
