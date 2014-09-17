@@ -1,4 +1,4 @@
-(defproject shepherd-examples "0.0.1"
+(defproject shepherd-examples "0.0.2"
   :description "Examples of using Shepherd."
   :url "https://github.com/mischov/shepherd-examples"
   :license {:name "Eclipse Public License"
