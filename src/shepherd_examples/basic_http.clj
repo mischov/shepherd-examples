@@ -52,17 +52,6 @@
   (not-found "I believe you might be lost."))
 
 
-(defn authenticate
-  "Function used to check if credentials represent a valid identity.
-
-   Returns identity if they do."
-  [{:keys [username password]}]
-
-  (when-let [user (get db username)]
-    (when (check-bcrypt password (:password user))
-      (dissoc user :password))))
-
-
 (defn wrap-secure-secured
   "Ring handler that throws an Unauthorized exception if request
    is not authorized."
@@ -74,6 +63,15 @@
        (not= (:uri request) "/secured") (handler request)
        (= (:role identity) :special) (handler request)
        :else (throw-unauthorized)))))
+
+
+(defn authenticate
+  "If credentials represent a valid identity, returns that identity."
+  [{:keys [username password]}]
+
+  (when-let [user (get db username)]
+    (when (check-bcrypt password (:password user))
+      (dissoc user :password))))
 
 
 (def app

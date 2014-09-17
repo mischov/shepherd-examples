@@ -1,7 +1,8 @@
 (ns shepherd-examples.session
   (:require [shepherd.ring.workflow.session :refer [session-workflow
                                                     parse-identity]]
-            [shepherd.ring.middleware :refer [wrap-auth]]
+            [shepherd.ring.workflow.form-login :refer [form-login-workflow]]
+            [shepherd.ring.middleware :refer [wrap-auth wrap-authentication]]
             [shepherd.authorization :refer [throw-unauthorized]]
             [shepherd.password :refer [bcrypt check-bcrypt]]
             [compojure.core :refer [defroutes GET POST]]
@@ -62,16 +63,13 @@
 (defn attempt-login
   [request]
 
-  (let [{:keys [username password]} (get request :params)
+  (let [identity (parse-identity request)
         session (get request :session)
-        user (get db username)
-        new-session (assoc session :identity (dissoc user :password))]
-    (if user
-      (if (check-bcrypt password (:password user))
-        (-> (redirect "/")
-            (assoc :session new-session))
-        (redirect "/login"))
-      (redirect "/login"))))
+        new-session (assoc session :identity identity)]
+    (if identity
+      (-> (redirect "/")
+          (assoc :session new-session))
+      (throw-unauthorized))))
 
 
 (defn logout-user
@@ -90,6 +88,7 @@
   (POST "/login" request (attempt-login request))
   (GET "/logout" [] (logout-user))
   (GET "/secured" [] (secured-view))
+  (POST "/secured" [] (secured-view))
   (not-found "I believe you might be lost."))
 
 
@@ -106,27 +105,35 @@
        :else (throw-unauthorized)))))
 
 
-(defn unauthenticated
-  "Function to be called if request has no identity and is
-   not authorized."
+(defn unauthenticated-session
+  "Function to be called if request has no identity and an
+   Unauthorized exception is thrown."
   [request]
 
   (redirect "/login"))
 
-(defn unauthorized
-  "Function to be called if request is not authorized."
-  [request identity]
 
-  {:status 403
-   :body "Permission denied."})
+(defn authenticate-login
+  If credentials represent a valid identity, returns that identity.
+  [{:keys [username password] :as credentials}]
+
+  (when-let [user (get db username)]
+    (when (check-bcrypt password (:password user))
+      (dissoc user :password))))
 
 
 (def app
-  (let [workflow (session-workflow
-                  {:unauthenticated unauthenticated
-                   :unauthoriezed unauthorized})]
+  "Two workflows: one to handle login via a form POST,
+   the second to handle authentication and authorization
+   via session cookies."
+  (let [form-workflow (form-login-workflow
+                        {:authenticate authenticate-login
+                         :login-uri "/login"})
+        cookie-workflow (session-workflow
+                          {:unauthenticated unauthenticated-session})]
     (-> routes
         (wrap-secure-secured)
-        (wrap-auth workflow)
+        (wrap-auth cookie-workflow)
+        (wrap-authentication form-workflow)
         (wrap-session)
         (api))))
