@@ -11,8 +11,6 @@
 
 
 ;;  Database
-
-
 (def db
   {"admin" {:username "admin"
             :password (bcrypt "admin")
@@ -23,11 +21,7 @@
 
 
 ;;  Interface
-
-
-(defn home-view
-  []
-
+(def home-view
   (html [:h1 "Home"]
         [:p "This page is not secured."]
         [:p "But "
@@ -35,20 +29,16 @@
             " is."]))
 
 
-(defn secured-view
-  []
-
+(def secured-view
   (html [:h1 "Secured"]
         [:p "You made it to the secured page!"]
         [:p "You must be a very special person... unlike that Bob fellow."]))
 
 
 ;;  Routes and Apps
-
-
 (defroutes routes
-  (GET "/" [] (home-view))
-  (GET "/secured" [] (secured-view))
+  (GET "/" [] home-view)
+  (GET "/secured" [] secured-view)
   (not-found "I believe you might be lost."))
 
 

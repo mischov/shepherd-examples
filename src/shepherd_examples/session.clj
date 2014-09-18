@@ -10,12 +10,12 @@
             [compojure.handler :refer [api]]
             [ring.util.response :refer [redirect]]
             [ring.middleware.session :refer [wrap-session]]
-            [hiccup.core :refer [html]]))
+            [hiccup.core :refer [html]]
+
+            [criterium.core :refer [with-progress-reporting quick-bench]]))
 
 
 ;;  Database
-
-
 (def db
   {"admin" {:username "admin"
             :password (bcrypt "admin")
@@ -26,11 +26,7 @@
 
 
 ;;  Interface
-
-
-(defn home-view
-  []
-
+(def home-view
   (html [:h1 "Home"]
         [:p "This page is not secured."]
         [:p "But "
@@ -38,17 +34,13 @@
             " is."]))
 
 
-(defn secured-view
-  []
-
+(def secured-view
   (html [:h1 "Secured"]
         [:p "You made it to the secured page!"]
         [:p "You must be a very special person... unlike that Bob fellow."]))
 
 
-(defn login-view
-  []
-
+(def login-view
   (html [:form {:method "POST" :action "/login"}
          [:input {:type "text"
                   :name "username"
@@ -61,6 +53,9 @@
 
 
 (defn attempt-login
+  "When request contains an identity, adds identity to cookie.
+
+   Otherwise throws an Unauthorized exception."
   [request]
 
   (let [identity (parse-identity request)
@@ -80,15 +75,12 @@
 
 
 ;;  Routes and App
-
-
 (defroutes routes
-  (GET "/" [] (home-view))
-  (GET "/login" [] (login-view))
+  (GET "/" [] home-view)
+  (GET "/login" [] login-view)
   (POST "/login" request (attempt-login request))
   (GET "/logout" [] (logout-user))
-  (GET "/secured" [] (secured-view))
-  (POST "/secured" [] (secured-view))
+  (GET "/secured" [] secured-view)
   (not-found "I believe you might be lost."))
 
 
